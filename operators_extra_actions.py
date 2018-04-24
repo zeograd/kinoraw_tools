@@ -903,7 +903,7 @@ class Sequencer_Extra_FadeInOut(bpy.types.Operator):
 class Sequencer_Extra_ExtendToFill(bpy.types.Operator):
     bl_idname = 'sequencerextra.extendtofill'
     bl_label = 'Extend to Fill'
-    bl_description = 'Extend active strip forward to fill adjacent space'
+    bl_description = 'Extend active or selected strips forward to fill adjacent space'
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
@@ -920,24 +920,25 @@ class Sequencer_Extra_ExtendToFill(bpy.types.Operator):
         meta_level = len(seq.meta_stack)
         if meta_level > 0:
             seq = seq.meta_stack[meta_level - 1]
-        strip = functions.act_strip(context)
-        chn = strip.channel
-        stf = strip.frame_final_end
-        enf = 300000
+            
+        for strip in functions.get_selected_strips(context) or [functions.act_strip(context)]:
+            chn = strip.channel
+            stf = strip.frame_final_end
+            enf = 300000
 
-        for i in seq.sequences:
-            ffs = i.frame_final_start
-            if (i.channel == chn and ffs > stf):
-                if ffs < enf:
-                    enf = ffs
-        if enf == 300000 and stf < scn.frame_end:
-            enf = scn.frame_end
+            for i in seq.sequences:
+                ffs = i.frame_final_start
+                if (i.channel == chn and ffs > stf):
+                    if ffs < enf:
+                        enf = ffs
+            if enf == 300000 and stf < scn.frame_end:
+                enf = scn.frame_end
 
-        if enf == 300000 or enf == stf:
-            self.report({'ERROR_INVALID_INPUT'}, 'Unable to extend')
-            return {'CANCELLED'}
-        else:
-            strip.frame_final_end = enf
+            if enf == 300000 or enf == stf:
+                self.report({'ERROR_INVALID_INPUT'}, 'Unable to extend')
+                return {'CANCELLED'}
+            else:
+                strip.frame_final_end = enf
 
         bpy.ops.sequencer.reload()
         return {'FINISHED'}
